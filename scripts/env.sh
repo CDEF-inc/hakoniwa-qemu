@@ -1,7 +1,8 @@
 # Common paths; source this from the other scripts. Every path can be set
 # from the environment.
 ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
-BUILD=${BUILD:-$ROOT/build}
+# Absolute, since run-demo.sh runs the assets from pdu/.
+BUILD=$(realpath -m "${BUILD:-$ROOT/build}")
 # hakoniwa-core-pro, pinned to the commit the demo was tested with.
 HAKO_REPO=${HAKO_REPO:-https://github.com/hakoniwalab/hakoniwa-core-pro.git}
 HAKO_REF=${HAKO_REF:-722ce022201547eca00c7ab630392faa53f2a431}

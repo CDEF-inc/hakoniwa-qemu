@@ -7,7 +7,8 @@ set -u
 seconds=${1:-3}
 out=${2:-$BUILD/run}
 qemu=$QEMU_BUILD/qemu-system-rx
-mkdir -p "$out"
+# Absolute, since the assets run in pdu/.
+mkdir -p "$out" && out=$(cd "$out" && pwd) || exit 1
 
 for f in "$qemu" "$BUILD/plant" "$BUILD/rx-baremetal.elf" "$HAKO_PREFIX/bin/hako-cmd"; do
   [ -x "$f" ] || [ -f "$f" ] || { echo "missing $f; see README.md" >&2; exit 1; }
@@ -48,7 +49,23 @@ if kill -0 $qemu_pid 2>/dev/null || kill -0 $plant 2>/dev/null; then
   kill -9 $qemu_pid $plant 2>/dev/null
   status=1
 fi
-wait 2>/dev/null
+wait $qemu_pid
+qemu_status=$?
+wait $plant
+plant_status=$?
+if [ $qemu_status != 0 ]; then
+  echo "QEMU exited with $qemu_status (see $out/qemu.log)" >&2
+  status=1
+fi
+if [ $plant_status != 0 ]; then
+  echo "plant exited with $plant_status (see $out/plant.log)" >&2
+  status=1
+fi
 grep '^t=' "$out/plant.log" > "$out/trace.txt"
-echo "$(wc -l < "$out/trace.txt") trace lines in $out/trace.txt"
+lines=$(wc -l < "$out/trace.txt")
+echo "$lines trace lines in $out/trace.txt"
+if [ "$lines" = 0 ]; then
+  echo "no trace from the plant" >&2
+  status=1
+fi
 exit $status
